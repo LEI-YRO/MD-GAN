@@ -1,19 +1,6 @@
-"""
-StarGAN v2
-Copyright (c) 2020-present NAVER Corp.
-
-This work is licensed under the Creative Commons Attribution-NonCommercial
-4.0 International License. To view a copy of this license, visit
-http://creativecommons.org/licenses/by-nc/4.0/ or send a letter to
-Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.
-"""
-
 import os
 
-
-
 from core.spectral_normalization import SpectralNorm
-
 
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 import copy
@@ -180,28 +167,6 @@ class AdaIN(nn.Module):
             return self.norm(x)
 
 
-# class AdaIN(nn.Module):
-#     def __init__(self, style_dim, num_features):
-#         super().__init__()
-#         # self.norm = SwitchNormalization(num_features)
-#         self.norm = nn.InstanceNorm2d(num_features, affine=False)
-#         self.fc = nn.Linear(style_dim, num_features*2)
-
-#     # def forward(self, x, s):
-#     #     h = self.fc(s)
-#     #     h = h.view(h.size(0), h.size(1), 1, 1)
-#     #     gamma, beta = torch.chunk(h, chunks=2, dim=1)
-#     def forward(self, x, s=None):
-#         if s is not None:
-#             h = self.fc(s)
-#             h = h.view(h.size(0), h.size(1), 1, 1)
-#             gamma, beta = torch.chunk(h, chunks=2, dim=1)
-#         else:
-#             gamma = torch.ones(x.size(0), x.size(1), 1, 1, device=x.device)
-#             beta = torch.zeros(x.size(0), x.size(1), 1, 1, device=x.device)
-#         return (1 + gamma) * self.norm(x) + beta
-
-
 class AdainResBlk(nn.Module):
     def __init__(self, dim_in, dim_out, style_dim=16, w_hpf=0,
                  actv=nn.LeakyReLU(0.2), upsample=False):
@@ -339,54 +304,6 @@ class Generator(nn.Module):
             #print("decoder:",x.shape)
         return self.to_rgb(x)
     
-# class Generator(nn.Module):
-#     def __init__(self, img_size=256, style_dim=64, max_conv_dim=512, w_hpf=1):
-#         super().__init__()
-#         dim_in = 2**14 // img_size
-#         self.img_size = img_size
-#         self.from_rgb = nn.Conv2d(3, dim_in, 3, 1, 1)
-#         self.encode = nn.ModuleList()
-#         self.decode = nn.ModuleList()
-#         self.to_rgb = nn.Sequential(
-#             nn.InstanceNorm2d(dim_in, affine=True),
-#             nn.LeakyReLU(0.2),
-#             nn.Conv2d(dim_in, 3, 1, 1, 0))
-
-
-#         # down/up-sampling blocks
-#         repeat_num = int(np.log2(img_size)) - 4
-
-#         for _ in range(repeat_num):
-#             dim_out = min(dim_in*2, max_conv_dim)
-#             if dim_in != max_conv_dim:
-#                 self.encode.append(DenseBlock(dim_in, 0))
-#                 self.encode.append(Transition(downsample=True))
-#             self.decode.insert(
-#                 0, AdainResBlk(dim_out, dim_in, style_dim,
-#                                w_hpf=w_hpf, upsample=True))
-#             dim_in = dim_out
-#         # bottleneck blocks
-#         self.encode.append(Transition(downsample=True))
-#         for _ in range(2):
-#             self.encode.append(
-#                 ResBlk(dim_out, dim_out, normalize=True))
-#             self.decode.insert(
-#                 0, AdainResBlk(dim_out, dim_out, style_dim, w_hpf=w_hpf))
-
-#             #self.decode.insert(0,Transition(upsample=True))
-
-#         if w_hpf > 0:
-#             device = torch.device(
-#                 'cuda' if torch.cuda.is_available() else 'cpu')
-#             self.hpf = HighPass(w_hpf, device)
-
-#     def forward(self, x, s, masks=None):
-#         x = self.from_rgb(x)
-#         for block in self.encode:
-#             x = block(x)
-#         for block in self.decode:
-#             x = block(x,s)
-#         return self.to_rgb(x)
 
 class StyleEncoder(nn.Module):
     def __init__(self, img_size=256, style_dim=16, num_domains=2, max_conv_dim=512):
@@ -453,29 +370,6 @@ class Discriminator(nn.Module):
         idx = torch.LongTensor(range(y.size(0))).to(y.device)
         out = out[idx, y]  # (batch)
         return out
-
-# class Classifier(nn.Module):
-#     def __init__(self, input_dim=512, df_dim=64):
-#         super(Classifier, self).__init__()
-#         self.conv1 = nn.Conv2d(input_dim, df_dim, kernel_size=1, stride=1)
-#         self.conv2 = nn.Conv2d(df_dim, df_dim*2, kernel_size=1, stride=1)
-#         self.conv3 = nn.Conv2d(df_dim*2, df_dim*4, kernel_size=1, stride=1)
-#         self.conv4 = nn.Conv2d(df_dim*4, df_dim//4, kernel_size=1, stride=1)
-#         self.conv5 = nn.Conv2d(df_dim//4, 2, kernel_size=1, stride=1)
-
-#     def forward(self, x):
-#         h0 = self.flip_gradient(x)
-#         h1 = F.leaky_relu(self.conv1(h0))
-#         h2 = F.leaky_relu(self.conv2(h1))
-#         h3 = F.leaky_relu(self.conv3(h2))
-#         h4 = F.leaky_relu(self.conv4(h3))
-#         h5 = self.conv5(h4)
-#         return h5
-
-#     def flip_gradient(self, x, l=1.0):
-#         positive_path = x * (l + 1)
-#         negative_path = -x * l
-#         return positive_path + negative_path
 
 class Classifier(nn.Module):
     def __init__(self, input_dim=3, df_dim=64, num_classes=3):
