@@ -103,21 +103,17 @@ if __name__ == '__main__':
                         help='Weight for R1 regularization')
     parser.add_argument('--lambda_l1', type=float, default=1,
                         help='Weight for l1 loss')
-    parser.add_argument('--lambda_per', type=float, default=1,
-                        help='Weight for perceptual loss')
     parser.add_argument('--lambda_rec', type=float, default=1,
-                        help='Weight for style reconstruction loss')
-    parser.add_argument('--lambda_latent', type=float, default=1,
-                        help='Weight for style reconstruction loss')
+                        help='Weight for morphological consistency loss')
     parser.add_argument('--lambda_class', type=float, default=1,
-                        help='Weight for class loss')
+                        help='Weight for modal classification loss')
     parser.add_argument('--w_hpf', type=float, default=0,
                         help='weight for high-pass filtering')
 
     # training arguments
     parser.add_argument('--randcrop_prob', type=float, default=0.5,
                         help='Probabilty of using random-resized cropping')
-    parser.add_argument('--total_iters', type=int, default=30000,
+    parser.add_argument('--total_iters', type=int, default=100000,
                         help='Number of total iterations')
     parser.add_argument('--resume_iter', type=int, default=0,
                         help='Iterations to resume training/testing')
