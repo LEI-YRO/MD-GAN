@@ -30,14 +30,14 @@ from torchvision.datasets import ImageFolder
 def listdir(dname):
     fnames = list(chain(*[list(Path(dname).rglob('*.' + ext))
                           for ext in ['png', 'jpg', 'jpeg', 'JPG']]))
-    fnames=sorted(fnames)
-    print(fnames)
+    # fnames=sorted(fnames)
+    # print(fnames)
     return fnames
 
 
 class DefaultDataset(data.Dataset):
     def __init__(self, root, transform=None):
-        self.samples = listdir(root)#取出所有图片
+        self.samples = listdir(root)
         self.samples.sort()
         self.transform = transform
         self.targets = None
@@ -61,16 +61,13 @@ class ReferenceDataset(data.Dataset):
     def _make_dataset(self, root):
         domains = os.listdir(root)
         fnames, fnames2, labels = [], [], []
-        # enumerate() 函数用于将一个可遍历的数据对象(如列表、元组或字符串)组合为一个索引序列（下标，数据）
-        for idx, domain in enumerate(sorted(domains)):  # [(0,'Flair'),(1,'T1'),(2,'T1ce'),(3,'T2')]
+        for idx, domain in enumerate(sorted(domains)): 
             class_dir = os.path.join(root, domain)
             cls_fnames = listdir(class_dir)
-            fnames += cls_fnames  # ['10001.png','10002.png'..]
-            # 随机截取列表指定长度（相当于打乱图片重新保存）
-            fnames2 += random.sample(cls_fnames, len(cls_fnames))  # ['20003.png','40002.png'..]
-            # [0][1][2]..
-            labels += [idx] * len(cls_fnames)  # [[0][0]..[0][1][1]..[1][2][2]..[2][3][3]..[3]](每个标签有19238个相当于一个名单)
-        return list(zip(fnames, fnames2)), labels  # [('10001.png','20003.png'),('10002.png','40002.png'),....]
+            fnames += cls_fnames 
+            fnames2 += random.sample(cls_fnames, len(cls_fnames))
+            labels += [idx] * len(cls_fnames) 
+        return list(zip(fnames, fnames2)), labels 
 
     def __getitem__(self, index):
         fname, fname2 = self.samples[index]
@@ -96,14 +93,12 @@ class SourceDataset(data.Dataset):
     def _make_dataset(self, root):
         self.domains = os.listdir(root)
         fnames, labels = [], []
-        # enumerate() 函数用于将一个可遍历的数据对象(如列表、元组或字符串)组合为一个索引序列（下标，数据）
-        for idx, domain in enumerate(sorted(self.domains)):#[(0,'Flair'),(1,'T1'),(2,'T1ce'),(3,'T2')]
+        for idx, domain in enumerate(sorted(self.domains)):
             class_dir = os.path.join(root, domain)
             cls_fnames = listdir(class_dir)
-            fnames += cls_fnames#['10001.png','10002.png'..]
-            # 随机截取列表指定长度（相当于打乱图片重新保存）
-            labels += [idx] * len(cls_fnames)#[[0][0]..[0][1][1]..[1][2][2]..[2][3][3]..[3]](每个标签有19238个相当于一个名单)
-        return fnames, labels#[('10001.png','20003.png'),('10002.png','40002.png'),....]
+            fnames += cls_fnames
+            labels += [idx] * len(cls_fnames)
+        return fnames, labels
 
     def __getitem__(self, index):
         fname = self.samples[index]
@@ -120,44 +115,11 @@ class SourceDataset(data.Dataset):
     def __len__(self):
         return len(self.targets)
     
-# class TestDataset(data.Dataset):
-#     def __init__(self, root, transform=None):
-#         global proot
-#         proot=root
-#         self.samples, self.targets = self._make_dataset(root)
-#         self.transform = transform
-
-#     def _make_dataset(self, root):
-#         self.domains = os.listdir(root)
-#         fnames, labels = [], []
-#         # enumerate() 函数用于将一个可遍历的数据对象(如列表、元组或字符串)组合为一个索引序列（下标，数据）
-#         for idx, domain in enumerate(sorted(self.domains)):#[(0,'Flair'),(1,'T1'),(2,'T1ce'),(3,'T2')]
-#             class_dir = os.path.join(root, domain)
-#             cls_fnames = listdir(class_dir)
-#             fnames += cls_fnames#['10001.png','10002.png'..]
-#             # 随机截取列表指定长度（相当于打乱图片重新保存）
-#             labels += [idx] * len(cls_fnames)#[[0][0]..[0][1][1]..[1][2][2]..[2][3][3]..[3]](每个标签有19238个相当于一个名单)
-#         return fnames, labels#[('10001.png','20003.png'),('10002.png','40002.png'),....]
-
-#     def __getitem__(self, index):
-#         fname = self.samples[index]
-#         label = self.targets[index]
-#         img = Image.open(fname).convert('RGB')
-#         if self.transform is not None:
-#             img = self.transform(img)
-#         return img, label, str(fname)
-
-#     def getroot(self,root):
-#         return root
-
-
-#     def __len__(self):
-#         return len(self.targets)
 
 
 def _make_balanced_sampler(labels):
-    class_counts = np.bincount(labels)#统计数值出现次数[19238,19238,19238,19238],（0.1.2.3每个出现19238次）
-    class_weights = 1. / class_counts#[1./19238,1./19238,1./19238,1./19238]
+    class_counts = np.bincount(labels)
+    class_weights = 1. / class_counts
     weights = class_weights[labels]
     return WeightedRandomSampler(weights, len(weights))
 
@@ -171,13 +133,8 @@ def get_ref_img(img_size=256, src_path=None, x_label=None, y_label=None):
     src_path = src_path
     domains = os.listdir(root)
     transform = transforms.Compose([
-        # 重建分辨率为256×256
         transforms.Resize([img_size, img_size]),
-        # # 依据概率p（默认0.5）对图像进行水平翻转
-        # transforms.RandomHorizontalFlip(),
-        # 将图像转为tensor并归一化到0-1（直接除以255），输出是chw
         transforms.ToTensor(),
-        # 逐通道进行标准化为正态分布【-1,1】：output = (input - mean) / std
         transforms.Normalize(mean=[0.5, 0.5, 0.5],
                              std=[0.5, 0.5, 0.5]),
     ])
@@ -206,29 +163,18 @@ def get_train_loader(root, which='source', img_size=256,
     print('Preparing DataLoader to fetch %s images '
           'during the training phase...' % which)
 
-    # 将图片随机裁剪为不同大小和宽高比后输出为img_size大小
     crop = transforms.RandomResizedCrop(
         img_size, scale=[0.8, 1.0], ratio=[0.9, 1.0])
-    # 随机决定是否裁剪缩放图片，如果随机数小于0.5则裁剪，否则不裁剪
     rand_crop = transforms.Lambda(
         lambda x: crop(x) if random.random() < prob else x)
-    # 对图片的各种转换操作用compose进行组合
     transform = transforms.Compose([
-        # rand_crop,
-        # 重建分辨率为256×256
         transforms.Resize([img_size, img_size]),
-        # # 依据概率p（默认0.5）对图像进行水平翻转
-        # transforms.RandomHorizontalFlip(),
-        # 将图像转为tensor并归一化到0-1（直接除以255），输出是chw
         transforms.ToTensor(),
-        # 逐通道进行标准化为正态分布【-1,1】：output = (input - mean) / std
         transforms.Normalize(mean=[0.5, 0.5, 0.5],
                              std=[0.5, 0.5, 0.5]),
     ])
 
     if which == 'source':
-        # ImageFolder假设所有的文件按文件夹保存，每个文件夹下存储同一个类别的图片，文件夹名为类名:0开始的序号
-        # 按root寻找图片，对图片进行transform操作
         dataset = SourceDataset(root, transform)#['10001.png',0]
     elif which == 'reference':
         dataset = ReferenceDataset(root, transform)#[('10001.png','20004.png')][0]
