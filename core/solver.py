@@ -52,11 +52,11 @@ class Solver(nn.Module):
                     weight_decay=args.weight_decay)
 
             self.ckptios = [
-                CheckpointIO(ospj(args.checkpoint_dir, 'brats_nocla_nets.ckpt'), data_parallel=True, **self.nets),
-                CheckpointIO(ospj(args.checkpoint_dir, 'brats_nocla_nets_ema.ckpt'), data_parallel=True, **self.nets_ema),
-                CheckpointIO(ospj(args.checkpoint_dir, 'brats_nocla_optims.ckpt'), **self.optims)]
+                CheckpointIO(ospj(args.checkpoint_dir, 'brats_nets.ckpt'), data_parallel=True, **self.nets),
+                CheckpointIO(ospj(args.checkpoint_dir, 'brats_nets_ema.ckpt'), data_parallel=True, **self.nets_ema),
+                CheckpointIO(ospj(args.checkpoint_dir, 'brats_optims.ckpt'), **self.optims)]
         else:
-            self.ckptios = [CheckpointIO(ospj(args.checkpoint_dir, 'brats_noper_nets_ema.ckpt'), data_parallel=True, **self.nets_ema)]
+            self.ckptios = [CheckpointIO(ospj(args.checkpoint_dir, 'brats_nets_ema.ckpt'), data_parallel=True, **self.nets_ema)]
 
         self.to(self.device)
         for name, network in self.named_children():
@@ -106,12 +106,6 @@ class Solver(nn.Module):
 
             masks = nets.fan.get_heatmap(x_real) if args.w_hpf > 0 else None
 
-            # train the discriminator
-            # d_loss, d_losses_latent = compute_d_loss(
-            #     nets, args, x_real, y_org, y_trg,z_trg=z_trg, masks=masks)
-            # self._reset_grad()
-            # d_loss.backward()
-            # optims.discriminator.step()
 
             d_loss, d_losses_ref = compute_d_loss(
                 nets, args, x_real, y_org, y_trg,x_ref=x_ref,y_src=y_src, x_src=x_src, masks=masks)
@@ -119,14 +113,6 @@ class Solver(nn.Module):
             d_loss.backward()
             optims.discriminator.step()
 
-            # train the generator
-            # g_loss, g_losses_latent = compute_g_loss(
-            #     nets, args, x_real, y_org, y_trg, y_ref=x_ref,y_src=y_src,z_trgs=[z_trg, z_trg2], masks=masks)
-            # self._reset_grad()
-            # g_loss.backward()
-            # optims.generator.step()
-            # optims.mapping_network.step()
-            # optims.style_encoder.step()
 
             g_loss, g_losses_ref = compute_g_loss(
                 nets, args, x_real, y_org, y_trg,y_ref=x_ref, y_src=y_src,x_refs=[x_ref, x_ref2], x_src=x_src, masks=masks)
@@ -141,7 +127,6 @@ class Solver(nn.Module):
             moving_average(nets.generator, nets_ema.generator, beta=0.999)
             moving_average(nets.anencoder, nets_ema.anencoder, beta=0.999)
             moving_average(nets.classifier, nets_ema.classifier, beta=0.999)
-            # moving_average(nets.mapping_network, nets_ema.mapping_network, beta=0.999)
             moving_average(nets.style_encoder, nets_ema.style_encoder, beta=0.999)
 
 
@@ -227,8 +212,6 @@ def compute_g_loss(nets, args, x_real, y_org, y_trg,y_ref=None,y_src=None, z_trg
         z_trg, z_trg2 = z_trgs
     if x_refs is not None:
         x_ref, x_ref2 = x_refs
-    # print(y_org)
-    # print(y_trg)
     
     # adversarial loss
     if z_trgs is not None:
@@ -245,38 +228,14 @@ def compute_g_loss(nets, args, x_real, y_org, y_trg,y_ref=None,y_src=None, z_trg
     out = nets.discriminator(x_fake, y_trg)
     out2 = nets.discriminator(x_fake2, y_org)
     loss_adv = adv_loss(out, 1)+adv_loss(out2, 1)
-
-    # style reconstruction loss 
-        
-    # a_src_rec = nets.anencoder(x_fake2)
-    # a_trg_rec = nets.anencoder(x_fake)
-    # s_src_rec = nets.style_encoder(x_fake2, None)
-    # s_trg_rec = nets.style_encoder(x_fake, None)
-    # loss_a_src = torch.mean(torch.abs(a_src - a_trg_rec))
-    # loss_a_trg = torch.mean(torch.abs(a_trg - a_src_rec))
-    # loss_s_src = torch.mean(torch.abs(s_src - s_src_rec))
-    # loss_s_trg = torch.mean(torch.abs(s_trg - s_trg_rec))
-    # loss_latent = loss_a_src+loss_a_trg+loss_s_src+loss_s_trg
-    
-    # match loss
-    # loss_modality = torch.mean(torch.abs(s_trg - s_match))
-    
-    # rec loss
-    #rec_src = nets.generator(a_src, s_src, masks=masks)
-    #rec_trg = nets.generator(a_trg, s_trg, masks=masks)
-    #loss_rec = torch.mean(torch.abs(rec_src - x_real))+torch.mean(torch.abs(rec_trg - x_ref))
     
 
     # l1 loss
     loss_l1 = torch.mean(torch.abs(y_src - x_fake))+torch.mean(torch.abs(x_src - x_fake2))
 
-    #PerceptualLoss
     device  = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # per_loss = PerceptualLoss().to(device)
-    # loss_per = per_loss(utils.unnormalize(y_src), utils.unnormalize(x_fake))+per_loss(utils.unnormalize(x_src), utils.unnormalize(x_fake2))
     
-    #classLoss
-    
+    #Modal classification loss
     x_nosty = nets.generator(a_src, None, masks=masks)
     y_nosty = nets.generator(a_trg, None, masks=masks)
     nosty_label = torch.full((x_real.size(0),), 2)
@@ -289,39 +248,20 @@ def compute_g_loss(nets, args, x_real, y_org, y_trg,y_ref=None,y_src=None, z_trg
             + F.cross_entropy(nets.classifier(y_nosty), nosty_label)
     loss_class = g_loss_class_real+g_loss_class_fake+g_loss_class_nosty
 
-    # rec loss
+    # Morphological consistency loss
     a_src_real = nets.anencoder(y_src)
     a_trg_real = nets.anencoder(x_src)
     rec_src = nets.generator(a_src_real, None, masks=masks)
     rec_trg = nets.generator(a_trg_real, None, masks=masks)
     loss_rec = torch.mean(torch.abs(x_nosty - rec_src))+torch.mean(torch.abs(y_nosty - rec_trg))
     
-    # 计算原始图像和转换后图像的边缘
-    #original_x = utils.sobel_edge(x_real)
-    #original_y = utils.sobel_edge(x_ref)
-    #transformed_x = utils.sobel_edge(x_nosty)
-    #transformed_y = utils.sobel_edge(y_nosty)
-    #loss_edge = torch.mean(torch.abs(original_x - transformed_x))+torch.mean(torch.abs(original_y - transformed_y))
-
-    # x_real = torch.mean(x_real, dim=1, keepdim=True)
-#     segmented_result = utils.segmentation(x_real)   
-#     tensor = segmented_result
-#     # Save the segmented images
-#     for i in range(tensor.size(0)):
-#     # 获取当前图像
-#         img_tensor = tensor[i]
-
-#         # 使用torchvision.utils.save_image()保存为图像文件
-#         vutils.save_image(img_tensor, f'output/output_{i}.png', normalize=True)
 
     loss = loss_adv +\
-        +args.lambda_rec*loss_rec+args.lambda_l1*loss_l1+args.lambda_class*loss_class#+args.lambda_latent*loss_latent# +args.lambda_per*loss_per
+        +args.lambda_rec*loss_rec+args.lambda_l1*loss_l1+args.lambda_class*loss_class
 
     return loss, Munch(adv=loss_adv.item(),
                        l1=loss_l1.item(),
                        rec=loss_rec.item(),
-                       # per=loss_per.item(),
-                       # latent=loss_latent.item(),
                        clas=loss_class.item()
                        )
 
