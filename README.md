@@ -14,7 +14,7 @@
  1. Download pre-trained models from [BaiduNetdisk](https://pan.baidu.com/s/1N_k_ei-x9REeVHBb6vnNvw?). password: zfxa.<br>
  2. Create the folder expr, which contains the folders :checkpoints, results, samples.
  3. Copy the pre-training files to the expr/checkpoints/BraTS.
- 4. To train ADGAN, run the following command：<br>
+ 4. To train MD-GAN, run the following command：<br>
 ```bash
   #BraTS2018
    python main.py --mode train --num_domains 2 --w_hpf 0 \
@@ -22,7 +22,7 @@
                --train_img_dir data/BraTS/train \
                --val_img_dir data/BraTS/val
 ```
- 5. Test ADGAN by running the following command：<br>
+ 5. Test MD-GAN by running the following command：<br>
 ```bash
  #BraTS2018
  python main.py --mode sample --num_domains 2 --resume_iter 0 --w_hpf 0 \
