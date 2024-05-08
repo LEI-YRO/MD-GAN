@@ -1,4 +1,4 @@
-# BMDGAN
+# MD-GAN
 
 # Environment and Supported Toolkits
 
