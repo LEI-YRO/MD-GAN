@@ -22,7 +22,7 @@
                --train_img_dir data/BraTS/train \
                --val_img_dir data/BraTS/val
 ```
- 5. Test MD-GAN by running the following command：<br>
+ 5. To train MD-GAN, run the following command：<br>
 ```bash
  #BraTS2018
  python main.py --mode sample --num_domains 2 --resume_iter 0 --w_hpf 0 \
@@ -32,7 +32,7 @@
                --ref_dir assets/BraTS/ref
 ```
 # Notes
-1. The implementation of proposed BMDGAN model is based on StarGAN V2(https://github.com/clovaai/stargan-v2) and ADGAN(https://github.com/LEI-YRO/ADGAN). 
+1. The implementation of proposed MD-GAN model is based on StarGAN V2(https://github.com/clovaai/stargan-v2) and ADGAN(https://github.com/LEI-YRO/ADGAN). 
 2. To facilitate processing, some image data were uploaded, which were derived from the dataset BraTS2018.
 3. If you want to train a custom dataset, the file processing is the same as BraTS.
 4. For smooth training of the network, it is recommended that the image naming does not contain any modal nouns.
