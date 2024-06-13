@@ -95,7 +95,7 @@ if __name__ == '__main__':
                         help='Latent vector dimension')
     parser.add_argument('--hidden_dim', type=int, default=512,
                         help='Hidden dimension of mapping network')
-    parser.add_argument('--style_dim', type=int, default=8,
+    parser.add_argument('--style_dim', type=int, default=16,
                         help='Style code dimension')
 
     # weight for objective functions
