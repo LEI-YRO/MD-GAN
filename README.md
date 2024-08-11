@@ -36,3 +36,4 @@
 2. To facilitate processing, some image data were uploaded, which were derived from the dataset BraTS2018.
 3. If you want to train a custom dataset, the file processing is the same as BraTS.
 4. For smooth training of the network, it is recommended that the image naming does not contain any modal nouns.
+5. Modify the weight file name you want to test in the solver file
