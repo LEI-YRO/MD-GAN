@@ -18,11 +18,11 @@
 ```bash
   #BraTS2018
    python main.py --mode train --num_domains 2 --w_hpf 0 \
-               --lambda_reg 1 --lambda_rec 0.01 --lambda_per class 0.02 --lambda_l1 100 \
+               --lambda_reg 1 --lambda_rec 0.01 --lambda_class 0.02 --lambda_l1 100 \
                --train_img_dir data/BraTS/train \
                --val_img_dir data/BraTS/val
 ```
- 5. To train MD-GAN, run the following command：<br>
+ 5. To test MD-GAN, run the following command：<br>
 ```bash
  #BraTS2018
  python main.py --mode sample --num_domains 2 --resume_iter 0 --w_hpf 0 \
